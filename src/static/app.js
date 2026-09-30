@@ -3,6 +3,71 @@ document.addEventListener("DOMContentLoaded", () => {
   const activitySelect = document.getElementById("activity");
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
+  const loginForm = document.getElementById("login-form");
+  const loginToggle = document.getElementById("teacher-login-toggle");
+  const logoutButton = document.getElementById("teacher-logout");
+  const signupContainer = document.getElementById("signup-container");
+  let teacherAuthorization = null;
+
+  function authorizationHeaders() {
+    return teacherAuthorization
+      ? { Authorization: `Basic ${teacherAuthorization}` }
+      : {};
+  }
+
+  function updateTeacherControls() {
+    const isTeacher = teacherAuthorization !== null;
+    loginToggle.classList.toggle("hidden", isTeacher);
+    loginForm.classList.add("hidden");
+    logoutButton.classList.toggle("hidden", !isTeacher);
+    signupContainer.classList.toggle("hidden", !isTeacher);
+  }
+
+  function encodeCredentials(username, password) {
+    const bytes = new TextEncoder().encode(`${username}:${password}`);
+    return btoa(Array.from(bytes, (byte) => String.fromCharCode(byte)).join(""));
+  }
+
+  loginToggle.addEventListener("click", () => {
+    loginForm.classList.toggle("hidden");
+  });
+
+  loginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const username = document.getElementById("teacher-username").value;
+    const password = document.getElementById("teacher-password").value;
+    const authorization = encodeCredentials(username, password);
+
+    try {
+      const response = await fetch("/auth/login", {
+        method: "POST",
+        headers: { Authorization: `Basic ${authorization}` },
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.detail || "Unable to log in");
+      }
+
+      teacherAuthorization = authorization;
+      loginForm.reset();
+      updateTeacherControls();
+      messageDiv.textContent = result.message;
+      messageDiv.className = "success";
+      messageDiv.classList.remove("hidden");
+      fetchActivities();
+    } catch (error) {
+      messageDiv.textContent = error.message || "Unable to log in";
+      messageDiv.className = "error";
+      messageDiv.classList.remove("hidden");
+    }
+  });
+
+  logoutButton.addEventListener("click", () => {
+    teacherAuthorization = null;
+    updateTeacherControls();
+    fetchActivities();
+  });
 
   // Function to fetch activities from API
   async function fetchActivities() {
@@ -12,6 +77,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Clear loading message
       activitiesList.innerHTML = "";
+      activitySelect.querySelectorAll("option:not(:first-child)").forEach((option) => option.remove());
 
       // Populate activities list
       Object.entries(activities).forEach(([name, details]) => {
@@ -28,10 +94,11 @@ document.addEventListener("DOMContentLoaded", () => {
               <h5>Participants:</h5>
               <ul class="participants-list">
                 ${details.participants
-                  .map(
-                    (email) =>
-                      `<li><span class="participant-email">${email}</span><button class="delete-btn" data-activity="${name}" data-email="${email}">❌</button></li>`
-                  )
+                  .map((email) => `<li><span class="participant-email">${email}</span>${
+                    teacherAuthorization
+                      ? `<button class="delete-btn" data-activity="${name}" data-email="${email}" aria-label="Unregister ${email}">Remove</button>`
+                      : ""
+                  }</li>`)
                   .join("")}
               </ul>
             </div>`
@@ -80,6 +147,7 @@ document.addEventListener("DOMContentLoaded", () => {
         )}/unregister?email=${encodeURIComponent(email)}`,
         {
           method: "DELETE",
+          headers: authorizationHeaders(),
         }
       );
 
@@ -124,6 +192,7 @@ document.addEventListener("DOMContentLoaded", () => {
         )}/signup?email=${encodeURIComponent(email)}`,
         {
           method: "POST",
+          headers: authorizationHeaders(),
         }
       );
 
@@ -156,5 +225,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Initialize app
+  updateTeacherControls();
   fetchActivities();
 });

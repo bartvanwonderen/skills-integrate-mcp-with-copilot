@@ -16,12 +16,46 @@ body {
 }
 
 header {
+  position: relative;
   text-align: center;
   padding: 20px 0;
   margin-bottom: 30px;
   background-color: #1a237e;
   color: white;
   border-radius: 5px;
+}
+
+.teacher-controls {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.login-form {
+  position: absolute;
+  z-index: 1;
+  top: 42px;
+  right: 0;
+  display: grid;
+  gap: 6px;
+  width: min(260px, calc(100vw - 40px));
+  padding: 12px;
+  color: #333;
+  text-align: left;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
+.login-form input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #aaa;
+  border-radius: 3px;
 }
 
 header h1 {
@@ -190,6 +224,20 @@ button:hover {
 
 .hidden {
   display: none;
+}
+
+@media (max-width: 600px) {
+  .teacher-controls {
+    position: static;
+    justify-content: center;
+    margin-bottom: 12px;
+  }
+
+  .login-form {
+    top: auto;
+    right: 50%;
+    transform: translateX(50%);
+  }
 }
 
 footer {
